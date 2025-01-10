@@ -15,7 +15,7 @@ build:
   artifacts:
     when: on_success
     paths:
-      - "bity-oauth2-auth-code-pkce-*.tgz"
+      - 'bity-oauth2-auth-code-pkce-*.tgz'
 
 publish:
   stage: Publish
