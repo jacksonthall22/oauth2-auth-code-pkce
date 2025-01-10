@@ -13,7 +13,8 @@
     "build:code:commonjs": "tsc -p tsconfig.json",
     "build:code": "npm run build:code:commonjs && npm run build:code:browser",
     "build": "npm run build:code",
-    "serve:tests": "http-server ./ --cors"
+    "serve:tests": "http-server ./ --cors",
+    "format": "prettier --write ."
   },
   "keywords": [
     "oauth",
@@ -25,6 +26,7 @@
   "devDependencies": {
     "browserify": "^16.5.0",
     "http-server": "^0.12.3",
+    "prettier": "3.4.2",
     "typescript": "^3.7.5"
   },
   "packageManager": "pnpm@9.14.2"
