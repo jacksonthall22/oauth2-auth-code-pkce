@@ -667,6 +667,9 @@ export class OAuth2AuthCodePKCE {
           // despite using the singular name "scope".
           scopes = scope.split(' ')
           this.state.scopes = scopes
+        } else {
+          // Otherwise use the scopes from the config.
+          scopes = this.config.scopes
         }
 
         localStorage.setItem(LOCALSTORAGE_STATE, JSON.stringify(this.state))
