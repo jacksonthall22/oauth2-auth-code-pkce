@@ -26,5 +26,6 @@
     "browserify": "^16.5.0",
     "http-server": "^0.12.3",
     "typescript": "^3.7.5"
-  }
+  },
+  "packageManager": "pnpm@9.14.2"
 }
