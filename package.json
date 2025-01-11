@@ -29,5 +29,8 @@
     "prettier": "3.4.2",
     "typescript": "^3.7.5"
   },
-  "packageManager": "pnpm@9.14.2"
+  "packageManager": "pnpm@9.14.2",
+  "dependencies": {
+    "murmurhash": "^2.0.1"
+  }
 }
