@@ -15,6 +15,11 @@ export interface Configuration {
   extraRefreshParams?: ObjStringDict
   onAccessTokenExpiry: (refreshAccessToken: () => Promise<AccessContext>) => Promise<AccessContext>
   onInvalidGrant: (refreshAuthCodeOrRefreshToken: () => Promise<void>) => void
+  /**
+   * An optional override for the `localStorage` object. This can be used to store the state
+   * using a different storage mechanism during the authorization flow, such as a custom database.
+   */
+  localStorageOverride?: Storage
 }
 
 export interface PKCECodes {
@@ -294,9 +299,9 @@ export class OAuth2AuthCodePKCE {
         configNew.headers = {}
       }
       configNew.headers[HEADER_AUTHORIZATION] = `Bearer ${token!.value}`
-      
+
       const res = await fetch(url, configNew, ...rest)
-      
+
       if (res.ok) {
         return res
       }
@@ -304,7 +309,7 @@ export class OAuth2AuthCodePKCE {
       if (!res.headers.has(HEADER_WWW_AUTHENTICATE.toLowerCase())) {
         return res
       }
-      
+
       const error = toErrorClass(
         fromWWWAuthenticateHeaderStringToObject(
           res.headers.get(HEADER_WWW_AUTHENTICATE.toLowerCase()),
@@ -358,7 +363,7 @@ export class OAuth2AuthCodePKCE {
 
     // TODO: Investigate the implications of commenting the lines below.
     // I think it's correct because setting `hasAuthCodeBeenExchangedForAccessToken = false`
-    // is sneaky and nonintuitive. Read more: 
+    // is sneaky and nonintuitive. Read more:
     // https://github.com/BitySA/oauth2-auth-code-pkce/issues/38#issue-2780821550
     // state.hasAuthCodeBeenExchangedForAccessToken = false
 
@@ -591,7 +596,8 @@ export class OAuth2AuthCodePKCE {
    * Resets the state of the client. Equivalent to "logging out" the user.
    */
   public reset() {
-    this.setAndStoreState({})
+    this.setState({})
+    this.deleteStoredState()
     this.authCodeForAccessTokenRequest = undefined
   }
 
@@ -712,17 +718,19 @@ export class OAuth2AuthCodePKCE {
    * Set `this.state` to the state stored in `localStorage`. If no state is
    * stored, it will be set to an empty object.
    */
-  private recoverStoredState(): void {
+  public recoverStoredState(): void {
     this.state = this.getStoredState() ?? {}
   }
 
   /**
-   * Throw an error if `localStorage` is not available.
+   * Return the `this.config.localStorageOverride` object if set, or the global
+   * `localStorage` by default. Throws an error if the `localStorage` is not available.
    */
-  private assertLocalStorageAvailable(): void {
-    if (typeof localStorage === 'undefined') {
-      throw new ErrorLocalStorageUndefined()
-    }
+  private getStorageInstance(): Storage {
+    if (this.config.localStorageOverride) return this.config.localStorageOverride
+
+    if (typeof localStorage === 'undefined') throw new ErrorLocalStorageUndefined()
+    return localStorage
   }
 
   /**
@@ -739,7 +747,7 @@ export class OAuth2AuthCodePKCE {
       requestedScopes: this.config.requestedScopes,
       tokenUrl: this.config.tokenUrl,
     })
-    const hash = murmurhash.v3(hashable, 0xC4E55)
+    const hash = murmurhash.v3(hashable, 0xc4e55)
     return `${LOCALSTORAGE_STATE_PREFIX}-${hash}`
   }
 
@@ -747,8 +755,16 @@ export class OAuth2AuthCodePKCE {
    * Write the current `this.state` to `localStorage`.
    */
   private storeState(): void {
-    this.assertLocalStorageAvailable()
-    localStorage.setItem(this.stateStorageKey, JSON.stringify(this.state))
+    const storage = this.getStorageInstance()
+    storage.setItem(this.stateStorageKey, JSON.stringify(this.state))
+  }
+
+  /**
+   * Delete any state stored in `localStorage`.
+   */
+  public deleteStoredState(): void {
+    const storage = this.getStorageInstance()
+    storage.removeItem(this.stateStorageKey)
   }
 
   /**
@@ -756,8 +772,8 @@ export class OAuth2AuthCodePKCE {
    * is not available.
    */
   public getStoredState(): State | null {
-    this.assertLocalStorageAvailable()
-    const storedState = localStorage.getItem(this.stateStorageKey)
+    const storage = this.getStorageInstance()
+    const storedState = storage.getItem(this.stateStorageKey)
     return storedState ? JSON.parse(storedState) : storedState
   }
 
